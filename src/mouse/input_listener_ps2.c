@@ -19,6 +19,7 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include <zmk/keymap.h>
 #include <zmk/mouse/types.h>
 #include <zmk/mouse/hid.h>
+#include <zmk/mouse_mode.h>
 
 #define ONE_IF_DEV_OK(n)                                                                           \
     COND_CODE_1(DT_NODE_HAS_STATUS(DT_INST_PHANDLE(n, device), okay), (1 +), (0 +))
@@ -69,6 +70,8 @@ struct input_listener_ps2_config {
     int layer_toggle_timeout_ms;
 };
 
+int scroll_event_down_sample_rate=8; //means 1/10 ,send report every 10 mouse event
+static int scroll_event_down_sample_counter=0;
 void zmk_input_listener_ps2_layer_toggle_input_rel_received(const struct input_listener_ps2_config *config,
                                                         struct input_listener_ps2_data *data);
 
@@ -98,6 +101,32 @@ static char *get_input_code_name(struct input_event *evt) {
 }
 
 static void handle_rel_code(struct input_listener_ps2_data *data, struct input_event *evt) {
+
+    int mode=get_zmk_behavior_mouse_mode();
+    if(mode == MODE_SCROLL){
+        
+        if(evt->code==INPUT_REL_X){
+            LOG_WRN("Trans MoveToScroll H");
+            // evt->value=evt->value/4;
+            
+            if(evt->value<0){
+                evt->value=-1;
+            }else{
+                evt->value=1;
+            }
+            evt->code=INPUT_REL_HWHEEL;
+        }
+        if(evt->code==INPUT_REL_Y){
+            LOG_WRN("Trans MoveToScroll V");
+            // evt->value=evt->value/4;
+            if(evt->value<0){
+                evt->value=-1;
+            }else{
+                evt->value=1;
+            }
+            evt->code=INPUT_REL_WHEEL;
+        } 
+    }
     switch (evt->code) {
     case INPUT_REL_X:
         data->mouse.data.mode = INPUT_LISTENER_XY_DATA_MODE_REL;
@@ -109,11 +138,11 @@ static void handle_rel_code(struct input_listener_ps2_data *data, struct input_e
         break;
     case INPUT_REL_WHEEL:
         data->mouse.wheel_data.mode = INPUT_LISTENER_XY_DATA_MODE_REL;
-        data->mouse.wheel_data.y += evt->value;
+        data->mouse.wheel_data.y = evt->value;
         break;
     case INPUT_REL_HWHEEL:
         data->mouse.wheel_data.mode = INPUT_LISTENER_XY_DATA_MODE_REL;
-        data->mouse.wheel_data.x += evt->value;
+        data->mouse.wheel_data.x = evt->value;
         break;
     default:
         break;
@@ -190,7 +219,6 @@ static void input_handler_ps2(const struct input_listener_ps2_config *config,
                           struct input_listener_ps2_data *data, struct input_event *evt) {
     // First, filter to update the event data as needed.
     filter_with_input_config(config, evt);
-
     LOG_DBG("Got input_handler_ps2 event: %s with value 0x%x", get_input_code_name(evt), evt->value);
 
     zmk_input_listener_ps2_layer_toggle_input_rel_received(config, data);
@@ -209,7 +237,11 @@ static void input_handler_ps2(const struct input_listener_ps2_config *config,
 
     if (evt->sync) {
         if (data->mouse.wheel_data.mode == INPUT_LISTENER_XY_DATA_MODE_REL) {
+            scroll_event_down_sample_counter++;
+            scroll_event_down_sample_counter=scroll_event_down_sample_counter%scroll_event_down_sample_rate;
             zmk_hid_mouse_scroll_set(data->mouse.wheel_data.x, data->mouse.wheel_data.y);
+            if(scroll_event_down_sample_counter==0)
+             LOG_WRN("Got Scroll event: x=%d,y=%d", data->mouse.wheel_data.x,data->mouse.wheel_data.y);
         }
 
         if (data->mouse.data.mode == INPUT_LISTENER_XY_DATA_MODE_REL) {
@@ -231,8 +263,8 @@ static void input_handler_ps2(const struct input_listener_ps2_config *config,
                 }
             }
         }
-
-        zmk_endpoints_send_mouse_report();
+        if(data->mouse.wheel_data.mode != INPUT_LISTENER_XY_DATA_MODE_REL||scroll_event_down_sample_counter==0)
+                zmk_endpoints_send_mouse_report();
         zmk_hid_mouse_scroll_set(0, 0);
         zmk_hid_mouse_movement_set(0, 0);
 

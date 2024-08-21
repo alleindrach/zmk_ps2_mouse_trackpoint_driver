@@ -1,0 +1,5 @@
+description: Mouse Mode
+
+compatible: "zmk,behavior-mouse-mode"
+
+include: zero_param.yaml

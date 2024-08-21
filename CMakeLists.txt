@@ -2,5 +2,6 @@ add_subdirectory(src/drivers)
 
 target_sources_ifdef(CONFIG_ZMK_INPUT_LISTENER_PS2 app PRIVATE src/mouse/input_listener_ps2.c)
 target_sources_ifdef(CONFIG_ZMK_BEHAVIOR_MOUSE_SETTING app PRIVATE src/behaviors/behavior_mouse_setting.c)
+target_sources_ifdef(CONFIG_ZMK_BEHAVIOR_MOUSE_MODE app PRIVATE src/behaviors/behavior_mouse_mode.c)
 
 zephyr_include_directories(include)
