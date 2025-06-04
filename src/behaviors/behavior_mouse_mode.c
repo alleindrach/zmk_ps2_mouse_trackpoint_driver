@@ -4,8 +4,11 @@
 #include <drivers/behavior.h>
 #include <zephyr/logging/log.h>
 
-
+#ifdef ZMK_INPUT_TRACK_POINT_I2C
+#include <zmk/input_track_point_i2c.h>
+#else
 #include <zmk/input_mouse_ps2.h>
+#endif
 #include <zmk/mouse_mode.h>
 
 static int zmk_behavior_mouse_mode = 0;
@@ -36,6 +39,10 @@ static int zmk_behavior_mouse_mode_init(const struct device *dev) {
      };
 int get_zmk_behavior_mouse_mode() { 
         
+        return zmk_behavior_mouse_mode; 
+     };
+int set_zmk_behavior_mouse_mode(int value) { 
+        zmk_behavior_mouse_mode=value;
         return zmk_behavior_mouse_mode; 
      };
 

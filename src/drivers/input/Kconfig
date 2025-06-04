@@ -3,6 +3,8 @@
 
 DT_COMPAT_ZMK_INPUT_PS2_MOUSE := zmk,input-mouse-ps2
 
+DT_COMPAT_ZMK_INPUT_I2C_TRACK_POINT := zmk,input-track-point-i2c
+
 config ZMK_INPUT_MOUSE_PS2
 	bool
 	default $(dt_compat_enabled,$(DT_COMPAT_ZMK_INPUT_PS2_MOUSE))
@@ -25,3 +27,33 @@ config ZMK_INPUT_MOUSE_PS2_ENABLE_ERROR_MITIGATION
 	default n
 
 endif # ZMK_INPUT_MOUSE_PS2
+config ZMK_INPUT_TRACK_POINT_I2C
+	bool
+	default $(dt_compat_enabled,$(DT_COMPAT_ZMK_INPUT_I2C_TRACK_POINT))
+    depends on (!ZMK_SPLIT || ZMK_SPLIT_ROLE_CENTRAL)
+	select ZMK_MOUSE
+	select I2C
+if ZMK_INPUT_TRACK_POINT_I2C
+	config ZMK_TP_I2C_LOG_LEVEL
+		int "I2C trackpoint module log level"
+		default 4 if !ZMK_LOGGING_MINIMAL
+		default 0 if ZMK_LOGGING_MINIMAL
+	config TP_TRIGGER_OWN_THREAD
+		bool 
+		default y
+	
+	config TP_THREAD_STACK_SIZE
+		int 
+		default 1024
+	config TP_THREAD_PRIORITY
+		int 
+		default 2
+	
+	config TP_TRIGGER_GLOBAL_THREAD
+		bool 
+		default y if !TP_TRIGGER_OWN_THREAD
+		default n if TP_TRIGGER_OWN_THREAD
+	config ZMK_SETTINGS_SAVE_DEBOUNCE
+		int 
+		default  5
+endif 

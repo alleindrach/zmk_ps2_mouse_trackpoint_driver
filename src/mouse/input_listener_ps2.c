@@ -103,30 +103,33 @@ static char *get_input_code_name(struct input_event *evt) {
 static void handle_rel_code(struct input_listener_ps2_data *data, struct input_event *evt) {
 
     int mode=get_zmk_behavior_mouse_mode();
-    if(mode == MODE_SCROLL){
-        
-        if(evt->code==INPUT_REL_X){
-            LOG_WRN("Trans MoveToScroll H");
-            // evt->value=evt->value/4;
-            
-            if(evt->value<0){
-                evt->value=-1;
-            }else{
-                evt->value=1;
+    if (CONFIG_ZMK_MOUSE_SCROLL_MODE){
+        if(mode == MODE_SCROLL){
+                
+                if(evt->code==INPUT_REL_X){
+                    LOG_WRN("Trans MoveToScroll H");
+                    // evt->value=evt->value/4;
+                    
+                    if(evt->value<0){
+                        evt->value=CONFIG_ZMK_MOUSE_SCROLL_SPEED*CONFIG_ZMK_MOUSE_SCROLL_DIRECTION_NATURE?-1:1;
+                    }else{
+                        evt->value=CONFIG_ZMK_MOUSE_SCROLL_SPEED*CONFIG_ZMK_MOUSE_SCROLL_DIRECTION_NATURE?1:-1;
+                    }
+                    evt->code=INPUT_REL_HWHEEL;
+                }
+                if(evt->code==INPUT_REL_Y){
+                    LOG_WRN("Trans MoveToScroll V");
+                    // evt->value=evt->value/4;
+                    if(evt->value<0){
+                        evt->value=CONFIG_ZMK_MOUSE_SCROLL_SPEED*CONFIG_ZMK_MOUSE_SCROLL_DIRECTION_NATURE?-1:1;;
+                    }else{
+                        evt->value=CONFIG_ZMK_MOUSE_SCROLL_SPEED*CONFIG_ZMK_MOUSE_SCROLL_DIRECTION_NATURE?1:-1;
+                    }
+                    evt->code=INPUT_REL_WHEEL;
+                } 
             }
-            evt->code=INPUT_REL_HWHEEL;
-        }
-        if(evt->code==INPUT_REL_Y){
-            LOG_WRN("Trans MoveToScroll V");
-            // evt->value=evt->value/4;
-            if(evt->value<0){
-                evt->value=-1;
-            }else{
-                evt->value=1;
-            }
-            evt->code=INPUT_REL_WHEEL;
-        } 
     }
+    
     switch (evt->code) {
     case INPUT_REL_X:
         data->mouse.data.mode = INPUT_LISTENER_XY_DATA_MODE_REL;
@@ -219,7 +222,8 @@ static void input_handler_ps2(const struct input_listener_ps2_config *config,
                           struct input_listener_ps2_data *data, struct input_event *evt) {
     // First, filter to update the event data as needed.
     filter_with_input_config(config, evt);
-    LOG_DBG("Got input_handler_ps2 event: %s with value 0x%x", get_input_code_name(evt), evt->value);
+    //allein20241119
+    // LOG_DBG("Got input_handler_ps2 event: %s with value %d", get_input_code_name(evt), evt->value);
 
     zmk_input_listener_ps2_layer_toggle_input_rel_received(config, data);
 
